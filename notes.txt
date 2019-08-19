@@ -163,6 +163,10 @@ cookiecutter django: Better project template
 De la clase 7 vayan a la 9 y la clase 8 la vean despues de la clase 13  "Creando el modelo de perfil de usuario" y 
 luego continuen con la 14 normal
 
+*********************************************************
+************************ MODELOS ************************
+*********************************************************
+
 -------------------
 Herencia de modelos
 -------------------
@@ -267,7 +271,7 @@ importa nuestros modelos y otros necesearios para no tener que hacerlos nosotros
 
 import csv
 
-defimport_csv(csv_filename):
+def import_csv(csv_filename):
     with open(csv_filename, mode='r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -276,5 +280,185 @@ defimport_csv(csv_filename):
             print(circle.name)
 
 
-filename = https://gist.github.com/pablotrinidad/93ee462e0ee761bd505f0a2fed3d1c8c
+#filename = https://gist.github.com/pablotrinidad/93ee462e0ee761bd505f0a2fed3d1c8c
+filename = 'cride/circles.csv'
 import_csv(filename)
+
+
+**************************************************************************************
+************************ Introducción a Django REST Framework ************************
+**************************************************************************************
+
+--------------------------------------------------------------
+Aprende cómo construir tu propio API con Django Rest Framework
+--------------------------------------------------------------
+agregamos djangorestframework==3.9.4 a requirements/base.txt
+y reconstruimos todas las imagenes con docker-compose build
+
+-----------------------------
+Vistas, URLs y Parsers de DRF
+-----------------------------
+Instalamos la app de restframework en requirements/base.py en THIRD_PARTY_APPS
+
+con el decorator @api_view ahora request es un objeto de rest_framework
+https://www.django-rest-framework.org/api-guide/requests/
+request.data de POST
+request.query_params de GET
+request.authenticators
+
+https://gist.github.com/subfuzion/08c5d85437d5d4f00e58
+curl http://localhost:8000/circles/ -v | python -m json.tool
+curl -d '{"name":"caffe", "slug_name": "cafe"}' -H "Content-Type: application/json" -X POST http://localhost:8000/circles/create/ -v | python -m json.tool
+
+-----------
+Serializers
+-----------
+Son contenedores que nos permiten tomar tipos de datos complejos y convertirlos a datos nativos de python y usarlos como json, xml, etc.
+
+from cride.circles.serializers import CircleSerializer 
+circle = Circle.objects.latest()
+serializer = CircleSerializer(circle)
+serializer.data
+{'name': 'caffe', 'slug_name': 'cafe', 'rides_taken': 0, 'rides_offered': 0, 'members_limit': 0}
+y asi nos ahorramos hacer como en list_circles
+data.append({
+	'name'          : circle.name,
+	'slug_name'     : circle.slug_name,
+	'rides_taken'   : circle.rides_taken,
+	'rides_offered' : circle.rides_offered,
+	'members_limit' : circle.members_limit,
+}
+
+Tambien se puede serializar una query set
+
+----------------------------------------------
+Buenas prácticas para el diseño de un API REST
+----------------------------------------------
+Metodos - estados - headers
+
+get,post,put,patch,delete
+No mas de dos niveles
+
+Filtering GET /movies/?status=release  
+Sorting GET /movies/?sort=-release_date, update_at
+
+Aliases GET /circles/verified
+Fields GET /movies?fields=id,directros,status # preferible user graph sql
+Pagination /moviles?page=4
+
+REST: Es una serie de principio de cómo diseñar una web service. Un estilo de arquitectura.
+
+4xx errores del cliente. 5xx errores del server
+
+	200 - ok
+	400 - bad request
+	500 - Internal server error
+
+HTTP Status Code:
+    201: Creado - created
+    304: No modificado - not modified
+    404: No encontrado - not found
+    401: No autorizado - unauthorized
+    403: Prohibido o restringido. forbidden
+
+Convenciones:
+Cuando se crea un recurso, se lo devuelve
+Devolver el error { code, message, description}
+
+Versioning: porque los usuarios usan las API: GET /v1/movies
+
+Authentication porque REST es stateless. EL mas comun es por token
+
+Pro tips:
+Usar SSL, cache, validar todo, proteger de CSRF(sucede cuando se autentica por sesion, por token es dificil que lo logren),
+limita los requests, complementa la API con un SDK
+
+--------------------------------------
+Request, response, renderers y parsers
+--------------------------------------
+Parser. La api recibe datos de distintos tipos. Los parsers lo validan y lo pasan al request.
+Renderers. Se definen en el setting por proyecto BrowsableAPIRenderer y JSONRenderer
+BrowsableAPIRenderer crea un html
+Entonces los renderers se encargan de como esta saliendo el contenido en el header accetps
+
+
+**********************************************************
+************************ Real DRF ************************
+**********************************************************
+
+--------------------------------------
+Autenticacion y tipos de autenticacion
+--------------------------------------
+
+asocia la peticion a un usuario y luego al request se le asignan dos propiedades
+- request.user (instancia de contrib.auth, en nuestro caso del custom user)
+- request.auth (info sobre el metodo de autenticacion)
+
+Sino se autentico nadie, es AnonymousUser
+
+DOS Esquemas de autenticacion 
+1. SessionAuthentication (el de cookies)
+2. BasicAuthentication
+
+Permissions:
+A traves de authentication y de  throttling (limite de peticiones en un tiempo)
+
+Una vez autorizado el usuario, este usuario tiene permiso de acceder a determinadas vistas,
+que puede ser definido por los atributos del usuario si es admin o usuario normal o por el tipo de objeto de circulo
+Todos los permisos heredan de basePermision que tiene dos metodos has_object_permission() y has_permission()
+Django por default tiene expuestos algunos permisos allowAny, isAuthenticated , isAdminUser etc
+
+Metodos de autenticacion:
+1- Basic
+	EN el header se envia Authorization: Basic y se envian las credenciales. Ex;  Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l 
+2- Token
+	COnjunto de caracteres unicos que te identifica y te da permisos
+3- Session
+	Usa las cookies, pero va contra principios de REST porque las sesiones no son stateless
+4- OAuth
+	Una aplicacion le da acceso de sus datos a otra aplicacion (no es autenticacion de usuarios)
+5- JWT json web token
+	Resuelve el problema de tener que almacenar la referencia a los tokens para que cuando lleguen 
+	se los identifica al usuario. No hace falta guardarlo en una Base de datos. Relacion codigo-usuario. 
+	3 partes: header, payload, firma criptografica
+
+-------
+APIView
+-------
+Cased based view
+
+--------------------------------
+Creando el token de autorización
+--------------------------------
+Token authentication no es seguro porque guarda los tokens en texto plano y se puede listar
+y asi tener acceso a todos. Ya que es oneToOne, se genera una sola vez
+rest_framework.authtoken
+
+Los serializers comparten contexto que es un atributo de clase
+
+curl localhost:8000/users/login -v | python -m json.tool
+
+curl -d '{"email":"bcespedes@gmail.com", "password": "brian123"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/login/ -v | python -m json.tool
+
+UserModelSerializer
+UserLoginSerializer
+
+------------
+User sign up
+------------
+curl -X POST POST http://localhost:8000/users/signup/ -v
+
+curl -d '{"email":"psilva@gmail.com", "password": "pablo12345", "password_confirmation": "pablo12345" , "username":"psilva", "first_name": "pablo", "last_name": "silva", "phone_number" : "+547811111"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/signup/ -v | python -m json.tool
+
+
+----------------------------------------------
+Limitar login a usuarios con cuenta verificada
+----------------------------------------------
+curl -d '{"email":"yborghi@gmail.com", "password": "yessica12345", "password_confirmation": "yessica12345" , "username":"yborghi", "first_name": "yessica", "last_name": "borghi", "phone_number" : "+5478111245"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/signup/ -v | python -m json.tool
+
+
+curl -d '{"email":"yborghi@gmail.com", "password": "yessica12345"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/login/ -v | python -m json.tool
+
+--------------------------
+Configurar envío de email
+--------------------------
