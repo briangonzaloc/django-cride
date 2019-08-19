@@ -232,6 +232,49 @@ docker-compose ps
 docker rm -f cride-platzi_django_1
 docker-compose run --rm --service-ports django
 
+--------------------------------------
+Creando el modelo de perfil de usuario
+--------------------------------------
+Primero cambiamos la version de django en requirements porque desde github nos avisaba de la vulnerabilidad.
+Luego docker-compose build para construir nuevamente
 
-bcespedes@gmail.com
-queseyoo
+--------------------------------
+Aplicacion y modelo de circuitos
+--------------------------------
+
+Pasos 
+docker images ls
+export COMPOSE_FILE=local.yml
+docker-compose up
+
+export COMPOSE_FILE=local.yml
+docker-compose ps
+docker rm -f cride_django_
+docker-compose run --rm --service-port django
+
+export COMPOSE_FILE=local.yml
+
+Crea el model Circle
+
+-------------------------------
+Migraciones y admin de círculos
+-------------------------------
+En las settings local.py tenemos instalada la app django_extensions
+con la cual podemos ejecutar el comando shell_plus
+docker-compose run --rm django python manage.py shell_plus
+importa nuestros modelos y otros necesearios para no tener que hacerlos nosotros
+
+
+import csv
+
+defimport_csv(csv_filename):
+    with open(csv_filename, mode='r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            circle = Circle(**row)
+            circle.save()
+            print(circle.name)
+
+
+filename = https://gist.github.com/pablotrinidad/93ee462e0ee761bd505f0a2fed3d1c8c
+import_csv(filename)
