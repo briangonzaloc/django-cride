@@ -462,3 +462,31 @@ curl -d '{"email":"yborghi@gmail.com", "password": "yessica12345"}' -H "Content-
 --------------------------
 Configurar envío de email
 --------------------------
+en settings/base.py esta configurado que los templates se van a buscar en APPS_DIR/template (APPS_DIR=cride)
+A modo de prueba se incluye el token en el mail. Pero deberia ir a un frontend donde se incluye el token en la url
+y el frontend intercambia al token con el backend
+
+curl -d '{"email":"fmaresca@gmail.com", "password": "fernando12345", "password_confirmation": "fernando12345" , "username":"fmaresca", "first_name": "fernando", "last_name": "maresca", "phone_number" : "+4581658422"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/signup/ -v | python -m json.tool
+
+curl -d '{"email":"fmaresca@gmail.com", "password": "fernando12345"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/login/ -v | python -m json.tool
+
+-------------------------------
+Instalar PyJWT y generar tokens
+-------------------------------
+https://github.com/jpadilla/pyjwt
+pyjwt==1.7.1 en el requirementes/base.txt
+
+shell_plus
+import jwt
+token = jwt.encode({'algo':'datos'}, settings.SECRET_KEY, algorithm='HS256')
+settings.SECRET_KEY es la firma
+Segun la doc si se agrega exp en UTC UNIX, no hay que hacer la validacion a mano, lanza una excepcion
+
+Para decodificar
+token = 'sdfsfsdfsd'
+jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+.{'user': 'juan', 'exp': 1566528016, 'type': 'email_confirmation'}
+
+---------------------------
+Verificar cuenta usando JWT
+---------------------------
