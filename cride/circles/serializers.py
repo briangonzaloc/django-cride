@@ -1,4 +1,7 @@
-""" Circle serializers
+########################### First approach  ###########################
+#replaced by serializers/circle.py
+
+"""Circle serializers
 """
 
 # Django REST Framework

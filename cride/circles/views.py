@@ -1,3 +1,6 @@
+########################### First approach  ###########################
+#Replaced by views/circle.py
+
 # circles views
 
 # Django

@@ -456,8 +456,13 @@ Limitar login a usuarios con cuenta verificada
 ----------------------------------------------
 curl -d '{"email":"yborghi@gmail.com", "password": "yessica12345", "password_confirmation": "yessica12345" , "username":"yborghi", "first_name": "yessica", "last_name": "borghi", "phone_number" : "+5478111245"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/signup/ -v | python -m json.tool
 
+eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoieWJvcmdoaSIsImV4cCI6MTU2NjU2NDE5NSwidHlwZSI6ImVtYWlsX2NvbmZpcm1hdGlvbiJ9.iP-ldb9Kmq7iP5EdLqbLdqQSk3ajZlSQT17fM_-RVCc
 
 curl -d '{"email":"yborghi@gmail.com", "password": "yessica12345"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/login/ -v | python -m json.tool
+
+
+
+
 
 --------------------------
 Configurar envío de email
@@ -484,9 +489,121 @@ Segun la doc si se agrega exp en UTC UNIX, no hay que hacer la validacion a mano
 
 Para decodificar
 token = 'sdfsfsdfsd'
-jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256')
 .{'user': 'juan', 'exp': 1566528016, 'type': 'email_confirmation'}
 
 ---------------------------
 Verificar cuenta usando JWT
 ---------------------------
+AccountVerificationSerializer se valida que el token de validacion sea correcto.
+En este serializers se sobreescribe save() para cambiar el estado del usuario a verificado
+No se sobreescribe el create porque no queremos retornar nada
+
+curl -d '{"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoieWJvcmdoaSIsImV4cCI6MTU2NjU2NDE5NSwidHlwZSI6ImVtYWlsX2NvbmZpcm1hdGlvbiJ9.iP-ldb9Kmq7iP5EdLqbLdqQSk3ajZlSQT17fM_-RVCc"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/verify/ -v | python -m json.tool
+
+"access_token": "5fc576274f5c1345a3333b531cc570b5ee168ed3",
+
+-----------------------------------------
+Actualizar modelo de circle (membership)
+-----------------------------------------
+Un circulo tiene varios usuarios miembros.
+ManyToMany Usuario a través de el model Membership( que tiene otrs datos)
+through_field cuando Membership hace referencia a dos Usuarios del mismo modelo(en este caso, el usuario que lo invito
+al circulo, y el usuario del circulo)
+Por esto se define el atributo 'related_name' en alguna de las referencias
+
+makemigrations + migrate
+
+-------------------
+Crear CircleViewSet
+-------------------
+https://www.django-rest-framework.org/api-guide/generic-views/
+Mixin es una clase que expone metodos
+GnericAPIView Evita codifo repetidos como en UserLoginAPIView, UserSignUpAPIView y AccountVerificationAPIView
+
+Viewsets son un conjunto de vistas que se encargan de estas funcionalidades (list, create, update, retrieve) 
+ModelViewSet
+
+Django REST Framework nos da DefaultRouter que recibe un viewset y él mismo genera los paths
+
+-----------------------------------
+Añadiendo autorización y paginación
+-----------------------------------
+Entonces urls con DefaultRouter, CircleViewSet (dos lineas), y CircleModelSerializer(definiendo los campos) basta para tener una API rest de circle
+
+Postman? pecho peludo usa cURL
+
+List circles: 
+curl http://localhost:8000/circles/ | python -m json.tool
+
+Create circle: 
+curl -X POST -d '{"slug_name": "platzi-peru", "name": "Platzi Peru", "about": "Es platzi, pero en perú"}' -H "Content-Type: application/json" http://localhost:8000/circles/ -v | python -m json.tool
+
+Get a Circle:
+curl http://localhost:8000/circles/1/ | python -m json.tool
+
+Update a circle: COmo es PUT, todos los campos requeridos los necesita si o si para hacer el update, 
+curl -X PUT -d '{"slug_name": "platzi-colombia", "name": "Platzi Colombia", "about": "Es platzi, pero es colimbia"}' -H "Content-Type: application/json" http://localhost:8000/circles/26/ -v | python -m json.tool
+
+Update some fields. No es necesario que todos los campos requeridos sean enviados
+curl -X PATCH -d '{"slug_name": "platzi-colombiaAAA"}' -H "Content-Type: application/json" http://localhost:8000/circles/26/ -v | python -m json.tool
+
+DELETE a circle;
+curl -X DELETE http://localhost:8000/circles/26/
+por convencion no regresa contenido, pero si el status 204 NO CONTENT
+
+Ahora hay que agregar authenticacion y  permisos para determinar que usuarios pueden realizar las operaciones.
+Para esto seteamos en settings/base.py DEFAULT_AUTHENTICATION_CLASSES en este caso usamos TokenAuthentication
+
+Agregamos permisos en CircleViewSet
+permission_classes = (IsAuthenticated,)
+
+Ahora las consultas retornan
+401 "detail": "Authentication credentials were not provided."
+Enviar el header Authorization: Token {{access_token}}
+
+curl -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" http://localhost:8000/circles/ | python -m json.tool  
+
+Agregamos paginacion en el settings/base.py opagination
+Listamos solos los circulos publicos redefiniendo get_queryset() pero el queryset siguen siendo all()
+
+--------------------
+Creación de circulos
+--------------------
+Personaliza el CircleViewSet y que un miembre se genere como administrador del grupo y valida el limite del circulo
+http://www.cdrf.co/3.9/rest_framework.mixins/CreateModelMixin.html
+
+se redefine perform_create() Porque ModelViewSet que hereda da la clase CreateModelMixin, donde create() invoca a perform_create()
+
+curl -X POST -d '{"slug_name": "platzi-peru", "name": "Platzi Peru", "about": "Es platzi, pero en perú"}' -H "Content-Type: application/json" -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" http://localhost:8000/circles/ -v | python -m json.tool
+
+Membership.objects.values('user','circle', 'is_admin')
+Validacion de membresia en circleModelSerializer
+En CircleModelSerializer validamos algunos datos y agregamos read_only_fields para que solo el admin del circulo pueda 
+modificar los datos del circulo
+
+
+--------------------------------------------------
+Update de círculo, custom permissions y DRF Mixins
+--------------------------------------------------
+Para que nadie pueda borrar un circle. ModelViewSet hereda de todos los mixed. Hacemos esas herencias menos DestroyModel
+Sobreescribimos  en ModelViewSet el metodo get_permissions para incluir el permiso de que solo el admin pueda modificar
+
+Creamos el permiso IsCircleAdmin. y hay que agregarlo al ViewSet. MIRAR COMO HACERLO CON REST CONDITION
+
+
+curl -X PATCH -d '{"slug_name": "platzi-paraguayyyyyyy"}' -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" -H "Content-Type: application/json" http://localhost:8000/circles/34/ -v | python -m json.tool
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/ | python -m json.tool  
+curl -X PATCH -d '{"slug_name": "platzi-paraguayyyyyyy"}' -H "Content-Type: application/json" -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/34/ -v | python -m json.tool
+
+"detail": "You do not have permission to perform this action."
+Porque no es el admin del circulo entonces no tiene permisos
+
+Token.objects.get(user__username='bcespedes')
+
+------------------------------------------
+Migración de vistas de usuarios a ViewSets
+------------------------------------------
+Los ViewSet actions se dividen en las que son de detalle y las que no
+las de detalle son las que tienen el id /circles/5 si pero circles/reportes no
