@@ -651,3 +651,58 @@ curl -X PATCH -F "picture=@~/Descargas/qac.png" -H "Authorization: Token 0c0d4b6
 -------------------------------
 List members - Recursos anidado
 -------------------------------
+Listar los miembros de un circulo /circles/slug_name/memebers
+se crea la vista MembershipViewSet con un metodo comun que se ejecute siempre para obtener el circulo.
+Para esto sobreescribimos el mteodo dispatch de GenericViewSet
+Creamos el serializer MembershipModelSerializer con la propiedad joined_at que es cuando se unió al grupo(no esta en la BD, pero si created)
+StringRelatedField para imprimir el username, no el id del invited_by
+Se crea IsActiveCircleMember para que solos los miembros del circulo puedan acceder al detalle del mismo
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/members/ | python -m json.tool
+
+-----------------------
+Retrieve destroy member
+-----------------------
+Recuperamos un miembro user de un ciruclo /circles/slug_name/memebers/bcespedes/
+Sobreescribimos el metodo get_object() en MembershipViewSet
+
+Borrar membership: Pero solo queremos setear is_Active en false
+DestroyModelMixin tiene los methods destroy and perform_destroy(este hace el delete) entonces sobreescribrimos el perform_destroy
+http://www.cdrf.co/
+
+curl -X DELETE -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" http://localhost:8000/circles/platzi-peru/members/yborghi/ | python -m json.tool
+response 204 no content
+
+--------------------------------
+Modelo de invitaciones y manager
+--------------------------------
+Una invitacion tiene un codigo, quien la emitio, quien la uso, usado, a que circulo pertenece
+
+Manager es una interfaz para comunicarse con la bd. Lo usamos para controlar la forma de crear la invitaciones
+https://docs.djangoproject.com/en/2.2/topics/db/managers/
+Circle.top_five()
+top_five es un Manager
+
+u = User.objects.first()
+c = Circle.objects.first()
+Invitation.objects.create(issued_by=u, circle=c)
+
+----------------------------------
+Obtener invitaciones de un miembro
+----------------------------------
+Una vista que genere todos los codigos que un usuario tiene disponible para distrubuir a sus amigos y a quien invito
+/circles/platzi-peru/memebers/bcespedes/invitations/
+
+brian = User.objects.get(username='bcespedes')
+y = User.objects.get(username='yborghi')
+c = Circle.objects.get(slug_name='platzi-peru')
+
+Membership.objects.create(user=brian, profile=brian.profile, circle=c, invited_by)
+
+curl -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" http://localhost:8000/circles/platzi-ecuador/members/yborghi/invitations/
+
+Reto crear un permiso para permitir acceso solo al mismo usuario
+
+--------------
+Unirse a grupo
+--------------
