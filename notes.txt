@@ -499,7 +499,7 @@ AccountVerificationSerializer se valida que el token de validacion sea correcto.
 En este serializers se sobreescribe save() para cambiar el estado del usuario a verificado
 No se sobreescribe el create porque no queremos retornar nada
 
-curl -d '{"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoieWJvcmdoaSIsImV4cCI6MTU2NjU2NDE5NSwidHlwZSI6ImVtYWlsX2NvbmZpcm1hdGlvbiJ9.iP-ldb9Kmq7iP5EdLqbLdqQSk3ajZlSQT17fM_-RVCc"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/verify/ -v | python -m json.tool
+curl -d '{"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoieWJvcmdoaSIsImV4cCI6MTU2NjYwMTE4NSwidHlwZSI6ImVtYWlsX2NvbmZpcm1hdGlvbiJ9.HpK8Ie7RoQOGgmebzdEB_9ZhINZMtQWa0XDxNy2jCBg"}' -H "Content-Type: application/json" -X POST http://localhost:8000/users/verify/ -v | python -m json.tool
 
 "access_token": "5fc576274f5c1345a3333b531cc570b5ee168ed3",
 
@@ -607,3 +607,47 @@ Migración de vistas de usuarios a ViewSets
 ------------------------------------------
 Los ViewSet actions se dividen en las que son de detalle y las que no
 las de detalle son las que tienen el id /circles/5 si pero circles/reportes no
+usar decorator @action
+
+Si seteamos lookup_field='slug_name' en el Circle view, ya no sera /circle/{id} sino /circle/{slug_name} asi evitamos exponer el id
+
+curl -X POST -d '{"slug_name": "fsociales", "name": "Facultad de sociales", "about": "la facu dsoc", "is_limited" : "True", "members_limit" : 12}' -H "Content-Type: application/json" -H "Authorization: Token 0c0d4b61f1aa5b92590a0ebc95d646699b437f68" http://localhost:8000/circles/ -v | python -m json.tool
+
+en Users reemplazamos las APIView por UserViewSet con action
+
+------------------
+Detalle de usuario
+------------------
+Para que la clase UserViewSet devuelva el detalle de un model, puede heredar de RetrieveModelMixin
+por lo tanto hay que configurar un queryset base
+
+User detail
+curl -H "Authorization: Token 0c0d4b61f1aa5b92590a0ebc95d646699b437f68" http://localhost:8000/users/bcespedes/ | python -m json.tool
+
+Se agrega al detalle los circulos a los cuales, el usuario es miembro
+Para esto sobreescribimos retrieve y agregamos data extra (los circulos)
+consultas Many to many
+https://docs.djangoproject.com/en/2.2/topics/db/models/#extra-fields-on-many-to-many-relationships
+
+-------------------
+Update profile data
+-------------------
+Solo el mismo dueño de la cuenta puede modificar su informacion de usuario
+
+curl -X PUT -H "Authorization: Token 0c0d4b61f1aa5b92590a0ebc95d646699b437f68" -H "Content-Type: application/json" -d '{"email": "briangonzaloc@gmail.com", "username": "briangonzaloc"}'  http://localhost:8000/users/bcespedes/ | python -m json.tool
+
+curl -X PATCH -H "Authorization: Token 0c0d4b61f1aa5b92590a0ebc95d646699b437f68" -H "Content-Type: application/json" -d '{"email": "bcespedes@gmail.com", "phone_number" : "+5488888888"}'  http://localhost:8000/users/bcespedes/ | python -m json.tool
+
+
+/users/bcespedes/profile
+creamos @action profile
+creamos ProfileModelSerializer
+definimos profile en UserModelSerializer
+
+El form data -F/--form para enviar una picture
+
+curl -X PATCH -F "picture=@~/Descargas/qac.png" -H "Authorization: Token 0c0d4b62f1aa5b92590a0ebc95d646699b437f68" -H "Content-Type: application/json" -d '{"biography": "argentina"}'  http://localhost:8000/users/bcespedes/profile/ | python -m json.tool
+
+-------------------------------
+List members - Recursos anidado
+-------------------------------
