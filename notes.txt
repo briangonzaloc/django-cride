@@ -701,8 +701,19 @@ Membership.objects.create(user=brian, profile=brian.profile, circle=c, invited_b
 
 curl -H "Authorization: Token 5fc576274f5c1345a3333b531cc570b5ee168ed3" http://localhost:8000/circles/platzi-ecuador/members/yborghi/invitations/
 
-Reto crear un permiso para permitir acceso solo al mismo usuario
+Reto: crear un permiso para permitir acceso solo al mismo usuario
 
 --------------
 Unirse a grupo
 --------------
+Creamos AddMemberSerializer
+un HiddenField no se valida
+Cuando un usuario se agrega a un circulo, no deberia enviar su id, con su token ya sabemos quien es
+se utiliza CurrentUserDefault y se sabe quien es porque desde la vista se envio el contexto
+
+NO SE SI ANDA
+curl -X GET -d '{"invitation_code":".QBZRSS.5P"}' -H "Authorization: Token 0c0d4b61f1aa5b92590a0ebc95d646699b437f68" -H "Content-Type: application/json" http://localhost:8000/circles/platzi-peru/members/
+
+--------
+Filtrado
+--------
