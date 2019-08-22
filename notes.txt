@@ -717,3 +717,54 @@ curl -X GET -d '{"invitation_code":".QBZRSS.5P"}' -H "Authorization: Token 0c0d4
 --------
 Filtrado
 --------
+Ejemplo /circles/?name=Ciencias&is_public=True
+Add django-filter in requirements/base.txt and django_filters in apps /settings/base.py
+In circle view add filter_backends and search_fields
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/?search=platzi-peru | python -m json.tool
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/?ordering=-name | python -m json.tool
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/?is_limited=1 | python -m json.tool
+
+----------------------
+App de rides y modelos
+----------------------
+Quien ofrece el ride, en que circulo lo ofrece, ubicacion, hora, lugar destino, hora destino, asientos, comentarios, pasajeros, activo
+
+Al igual que en la vista de membership. Todos los membership al tener un circulo, se tiene que obtener el circulo antes de que se ejecute la visata
+Esto lo hacemos en el metodo dispatch
+
+-------------------------------------
+Validación de campos de un serializer
+-------------------------------------
+CreateRideSerializer
+GenericViewSet invoca al metodo get_serializer() el cual agrega al kwargs['context'] = get_serializer_context 
+get_serializer_context devuelve request, format, view
+AGREGAMOS EL CIRCLE AL CONTEXT PARA NO TENER QUE ACCEDER DESDE EL VIEW COMO EN LA VISTA DE Membership
+
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/ | python -m json.tool
+
+curl -X POST -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" -H "Content-Type: application/json" -d '{"arrival_date": "2019-08-23T19:30:00-06:00", "arrival_location": "Prometeo, facultad de ciencias" , "available_seats": 4, "departure_date": "2019-08-23T17:30:00-06:00", "departure_location": "Orizaba 36, ramal norte"}' http://localhost:8000/circles/platzi-peru/rides/ -v | python -m json.tool
+
+
+curl -X POST -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" -H "Content-Type: application/json" -d '{"arrival_date": "2019-08-23T22:50:00-06:00", "arrival_location": "Dharwin, facultad de ciencias" , "available_seats": 2, "departure_date": "2019-08-23T22:00:00-06:00", "departure_location": "Centro Historico"}' http://localhost:8000/circles/platzi-peru/rides/ -v | python -m json.tool
+
+----------------
+Listado de rides
+----------------
+Agregamos a la vista que herede de ListModelMixin peeeero la lista no queremos qeh use el serializer CreateRideSerializer porque este excluye cosas como los pasajeros, rating etc.
+Entonces redefinimos un get_serializer_class
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/ | python -m json.tool
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/?search=Dharwin | python -m json.tool
+
+curl -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/ | python -m json.tool
+
+--------------
+Editar un ride
+--------------
+limitar a Dueño de ride. agrego en la vista UpdateModelMixin
+El update tambien utiliza el RideModelSerializer
+
+curl -X PATCH -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" -H "Content-Type: application/json" -d '{"comments": "cuando sale man" }' http://localhost:8000/circles/platzi-peru/rides/3/ -v | python -m json.tool
