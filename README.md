@@ -1,4 +1,6 @@
 Comparte Ride
 =============
 
-Group-bounded, invite-only, carpooling platform
+Django
+Course
+First project
