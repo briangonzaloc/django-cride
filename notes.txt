@@ -1,3 +1,5 @@
+BLA BLA BLA ANOTACIONES ASI NOMA´´
+
 ---------------------
 The twelve-factor App
 ---------------------
@@ -768,3 +770,108 @@ limitar a Dueño de ride. agrego en la vista UpdateModelMixin
 El update tambien utiliza el RideModelSerializer
 
 curl -X PATCH -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" -H "Content-Type: application/json" -d '{"comments": "cuando sale man" }' http://localhost:8000/circles/platzi-peru/rides/3/ -v | python -m json.tool
+
+--------------
+Unirse a viaje
+--------------
+Agregar un usuario a un ride a través de un viewset action
+/circles/[slug_name]/rides/[ride]/join
+ride como contexto
+
+Creamos el serializer JoinRideSerializer
+curl -X POST -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/3/join/ -v | python -m json.tool
+
+---------------
+FInalizar viaje
+---------------
+action finish in view ride
+crete EndRideSerializer
+curl -X POST -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" http://localhost:8000/circles/platzi-peru/rides/3/finish/ -v | python -m json.tool
+
+"detail": "Not found." jaajajaja
+Por el queryset, que esta formado por los viajes now + 10min
+
+---------------
+Calificar viaje
+---------------
+Creamos model Rating y la vista es una accion en la vista de ride
+
+curl -X POST -H "Authorization: Token 79f6b22c3c875a05801ce00fa8bc938596a2eda3" -H "Content-Type: application/json" -d '{"rating": 3, "comments" : "good!"}'  http://localhost:8000/circles/platzi-peru/rides/3/rate/ -v | python -m json.tool
+
+-----------------------
+Creando tarea asíncrona
+-----------------------
+Celery para mandar el mail
+Crear archivo task.py
+http://docs.celeryproject.org/en/latest/userguide/calling.html#basics
+
+Sacar tareas pesadas de nuestra aplicacion. Celery con Redis se encargara de enviar el email 
+
+-----------------------
+Creando tarea periódica
+-----------------------
+No llamada por nadie. 
+Flower app que permite ver todos los workers por medio de una interfaz web. en este caso port 5555
+
+Marcar is_active = false todos los viajes que hayan terminados
+decorator periodic_task
+disable_finished_rides en tasks.py
+
+Para no usar la cache de las imagenes
+docker-compose up --force-recreate
+
+----------------------------------
+Python unittest y Django TestCase
+----------------------------------
+Para listar warning por mas que usemos buenas practicas
+ docker-compose run --rm django flake8
+
+unit test
+test_invitations
+Ejecutar los test: test_code_generation
+docker-compose run --rm django pytest
+
+
+debugger import pdb; pdb.set_trace()
+
+test driven developer:
+desarrollo guiado por la prueba
+pimero se crean las pruebas del endpoint
+
+---------------
+DRF APITestCase
+---------------
+------------------------------------------
+Admin actions: Modificar datos de un query
+------------------------------------------
+En el circles/admin.py agrega las acciones de verified/unverified
+
+----------------------------
+Instalación de la aplicación
+----------------------------
+Necesitamos que docker corra en modo detach(-d), es decir que no esté ligada a la sesion pero si muere, volver a recatarlo (usando supervisor)
+suervisor mantiene una tarea corriendo constantemente
+
+$sudo su -
+$apt-get install supervisor
+$service supervisor restart
+$cd /etc/supervisor/conf.d
+"aca creamos un servicio supervisor"
+$vim cride.conf          
+contenido
+
+##########
+[progra:cride]
+command=docker-compose -f production.yml up 
+directory=/home/ubuntu/cride-platzi
+redirect_stderr=true
+autostart=true
+autorestart=true
+priority=10
+##########
+
+$supervisorctl reread
+$supervisorctl update
+$supervisorctl start cride
+
+TODA LA CONFIGURACIION VIENE DE COOKIET-CUTTER

@@ -20,6 +20,9 @@ from cride.users.models import User, Profile
 # Serializers
 from cride.users.serializers.profiles import ProfileModelSerializer
 
+# Tasks
+from cride.taskapp.tasks import send_confirmation_email
+
 #Utilities
 import jwt
 from datetime import timedelta
@@ -78,6 +81,7 @@ class UserSignUpSerializer(serializers.Serializer):
 		user = User.objects.create_user(**data, is_verified=False, is_client=True)
 		Profile.objects.create(user=user)
 		self.send_confirmation_email(user)
+		# send_confirmation_email.delay(user_ok=user.pk) ##CELERY
 		return user
 
 	def send_confirmation_email(self, user):
